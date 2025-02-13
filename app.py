@@ -5,11 +5,13 @@ import cv2
 import sys
 from scf2.tracking import process_video
 from scf2.object_detection import ObjectDetection
+from scf2.obj_det import detect_objects
+from scf2.retina_net_w import detect_objects_retina
 
 # Add the scf2 directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'scf2'))
 
-st.title("Object Tracking Application")
+st.title("Object Tracking and Detection Application")
 
 # Upload video file
 uploaded_video_file = st.file_uploader("Upload a video file", type=["mp4", "avi", "mov"])
@@ -33,7 +35,7 @@ if uploaded_video_file is not None:
         btn = st.download_button(
             label="Download Processed Video",
             data=file,
-            file_name= uploaded_video_file.name,
+            file_name=uploaded_video_file.name,
             mime="video/mp4"
         )
 
@@ -48,20 +50,21 @@ if uploaded_image_file is not None:
     # Define path for input image
     input_image_path = tfile.name
     
-    # Initialize Object Detection
-    od = ObjectDetection()
-    
-    # Read the image
-    image = cv2.imread(input_image_path)
-    
-    # Perform object detection
-    (class_ids, confidences, boxes) = od.detect(image)
+    # Select the model for object detection
+    model_option = st.selectbox("Select the model for object detection", ("YOLOv3", "RetinaNet"))
+
+    if model_option == "YOLOv3":
+        # Perform object detection using obj_det.py
+        image, class_ids, confidences, boxes = detect_objects(input_image_path)
+    elif model_option == "RetinaNet":
+        # Perform object detection using retina_net_w.py
+        image, class_ids, confidences, boxes = detect_objects_retina(input_image_path)
     
     # Draw bounding boxes on the image
     for (class_id, confidence, box) in zip(class_ids, confidences, boxes):
         (x, y, w, h) = box
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        text = f"{od.classes[class_id]}: {confidence:.2f}"
+        text = f"{class_id}: {confidence:.2f}"
         cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     
     # Save the output image
